@@ -19,7 +19,7 @@ global:
       # -- global postgres master password
       password: gen3-password
       # -- global postgres master host
-      host: <container-id>
+      host: a6dde37d0b58
       # -- global postgres master port
       port: "5432"
   # -- (string) Environment name.
@@ -106,7 +106,7 @@ fence:
     tag: "master"
   # -- (map) Configuration settings for Fence app
   FENCE_CONFIG:
-    APP_NAME: 'Local Gen3 Data Commons with Minikube'
+    APP_NAME: 'Gen3 Data Commons with K3s'
     OPENID_CONNECT:
       google:
         client_id: ""
@@ -119,7 +119,7 @@ fence:
     S3_BUCKETS:
       gen3-bucket:
         cred: "gen3-user"
-        endpoint_url: ""
+        endpoint_url: "s3.us-east-1.amazonaws.com"
         region: 'us-east-1'
     DATA_UPLOAD_BUCKET: "gen3-bucket"
   # -- (string) USER YAML. Passed in as a multiline string.

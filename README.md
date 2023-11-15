@@ -146,14 +146,20 @@ sudo sysctl -w vm.max_map_count=262144
 ``` 
 This setting will only last for the duration of the session. The host machine will be reset to the original value if it gets rebooted. For this change to be set permanently on the host machine, the `/etc/sysctl.conf` file needs to be edited with `vm.max_map_count=262144`. To see the current value, run `/sbin/sysctl vm.max_map_count`. More details can be found on the [official Elasticsearch website](https://www.elastic.co/guide/en/elasticsearch/reference/current/vm-max-map-count.html).   
 
+Some of the microservices require the `uwsgi-plugin` for Python 3. To install it, run the following:
+```bash
+sudo apt update  
+sudo apt install uwsgi-plugin-python3 
+```
+
 Before performing a `helm install`, we need to create a `values.yaml` file. This file should be inside the root and contain the contents of the `values.yaml` file that can be found in the root of this repository. Now the Helm installation can begin by running:
 ```bash
 helm upgrade --install gen3-dev gen3/gen3 -f gen3/values.yaml 
 ```
 In the above command, `gen3-dev` is the name of the release of the helm deployment. If the installation is successful, then a message similar to the following should be displayed in the terminal:
 ```bash
-NAME: local-gen3
-LAST DEPLOYED: Mon Nov 13 14:27:49 2023
+NAME: gen3-dev
+LAST DEPLOYED: Tue Nov 14 13:27:49 2023
 NAMESPACE: default
 STATUS: deployed
 REVISION: 1
@@ -163,9 +169,9 @@ If all went well, we should see the `revproxy-dev` deployment up and running wit
 kubectl get ingress
 ```
 The output should look similar to this:
-| NAME          | CLASS     | HOSTS           | ADDRESS       | PORTS   | AGE |
-| ------------- | --------- | --------------- | ------------- | ------- | --- |
-| revproxy-dev  | nginx     | gen3local.co.za | 192.168.49.2  | 80, 443 | 23s |
+| NAME          | CLASS   | HOSTS           | ADDRESS    | PORTS   | AGE |
+| ------------- | ------- | --------------- | ---------- | ------- | --- |
+| revproxy-dev  | traefik | gen3local.co.za | 10.0.2.238 | 80, 443 | 34s |
 
 The list of deployments can be seen by running:
 ```bash
@@ -173,6 +179,38 @@ kubectl get deployments
 ```    
 
 ![Gen3 services deployed](/public/assets/images/gen3-deployments.png "Gen3 services deployed")  
+
+### Grafana OSS in Kubernetes (Optional)   
+Grafana open source software (OSS) allows for the querying, visualising, alerting on, and exploring of metrics, logs, and traces wherever they are stored. Graphs and visualisations can be created from time-series database (TSDB) data with the tools that are provided by Grafana OSS. We'll be using the [Grafana documentation](https://grafana.com/docs/grafana/latest/setup-grafana/installation/kubernetes/) to guide us in installing Grafana in our k8s cluster.   
+
+To create a namespace for Grafana, run the following command:
+```bash
+kubectl create namespace gen3-grafana
+```
+We'll create a `grafana.yaml` file which will contain the blueprint for a persistent volume claim (pvc), a service of type loadbalancer, and a deployment. This file can be found in the `gen3` directory of this repo. To create these resources, we need to apply the manifest as follows:
+```bash
+kubectl apply -f gen3/grafana.yaml --namespace=gen3-grafana
+```
+To get all information about the Grafana deplyment, run:
+```bash
+kubectl get all --namespace=gen3-grafana
+```
+![Grafana k8s Objects](/public/assets/images/grafana-k8s-objects.png "Grafana k8s Objects")  
+
+The `grafana` service should have an **EXTERNAL-IP**. This IP can be used to access the Grafana sign-in page in the browser. If there is no **EXTERNAL_IP**, then port-forwarding can be performed like this:
+```bash
+kubectl port-forward service/grafana 3000:3000 --namespace=gen3-grafana
+```
+Then the Grafana sign-in page can be accessed on `http://localhost:3000`. Use `admin` for both the username and the password.   
+
+Since we are working on an Amazon EC2 instance, we would need to make use of the _auto-assigned IP address_ of the EC2 instance instead of localhost.   
+![Grafana Login Page](/public/assets/images/grafana-login-page.png "Grafana Login Page")   
+
+After logging in, we are free to explore the various features that Grafana offers...
+![Grafana Landing Page](/public/assets/images/grafana-landing-page.png "Grafana Landing Page")   
+
+**NOTE:** For access from a browser, we need to ensure that the inbound rules of the security group assigned to this EC2 instance allows for traffic to access the port 3000.
+![Security Group Inbound Rules](/public/assets/images/security-group-inbound-rules.png "Security Group Inbound Rules")  
 
 ### Docker (Optional)
 Let us go through the steps to install [Docker](https://docs.docker.com/get-started/overview/). We'll begin by doing a general software dependency update:
